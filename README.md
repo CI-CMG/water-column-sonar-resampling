@@ -1,2 +1,7 @@
 # water-column-sonar-resampling
 Water Column Sonar Data Reprocessing Project for Warren Tech Capstone 2026
+
+## Reminders
+If you update the patch number in `pyproject.toml` please make sure to also update the patch number (the last number) in `.python-version`
+
+To get the most fresh copy of the project run `uv venv` and then sun the source command given `source .venv/bin/activate` -- opens a venv with all of the most up to date packages and code.

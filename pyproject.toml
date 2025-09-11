@@ -1,5 +1,5 @@
 [project]
-name = "Water Column Sonar Resampling"
+name = "water-column-sonar-resampling"
 version = "25.9.0"
 authors = [
   { name="Caitlyn Nguyen", email="cpnguyen0000@gmail.com" },
@@ -13,4 +13,10 @@ description = "Water Column Sonar Data Reprocessing Project for Warren Tech Caps
 keywords = ["reprocessing", "sonar", "water column", "zarr"]
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "numpy>=2.3.3",
+    "pandas>=2.3.2",
+    "scipy>=1.16.2",
+    "xarray>=2025.9.0",
+    "zarr>=3.1.2",
+]
