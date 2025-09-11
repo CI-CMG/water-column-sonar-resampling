@@ -1,6 +1,6 @@
 [project]
 name = "water-column-sonar-resampling"
-version = "25.9.0"
+version = "25.9.1"
 authors = [
   { name="Caitlyn Nguyen", email="cpnguyen0000@gmail.com" },
   { name="Logan Lessen", email="loganlessen@gmail.com" },
@@ -10,6 +10,8 @@ maintainers = [
   { name="Logan Lessen", email="loganlessen@gmail.com" },
 ]
 description = "Water Column Sonar Data Reprocessing Project for Warren Tech Capstone 2026"
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = ["reprocessing", "sonar", "water column", "zarr"]
 readme = "README.md"
 requires-python = ">=3.12"
