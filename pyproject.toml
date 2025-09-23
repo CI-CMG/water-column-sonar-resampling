@@ -1,6 +1,6 @@
 [project]
 name = "water-column-sonar-resampling"
-version = "25.9.3"
+version = "25.9.4"
 authors = [
   { name="Caitlyn Nguyen", email="cpnguyen0000@gmail.com" },
   { name="Logan Lessen", email="loganlessen@gmail.com" },
