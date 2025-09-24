@@ -30,8 +30,8 @@ jobs:
     - name: Install the project
       run: uv sync --all-extras --dev
 
-#    - name: Run tests
-#      run: uv run pytest tests
+    - name: Run tests
+      run: uv run pytest tests
 
     - name: Build a binary wheel and a source tarball
       run: uv build --no-sources
