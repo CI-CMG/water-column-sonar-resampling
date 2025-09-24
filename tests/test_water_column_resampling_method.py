@@ -1,8 +1,9 @@
-"""
-from water_column_resampling import water_column_resample
+from water_column_resampling import water_comlumn_resample
 
-def test_open():
+def test_init():
+    pass
+
+"""def test_open():
     x = water_column_resample("noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB1906/EK60/HB1906.zarr/")
     x.open_store()
-    assert x.return_attributes() is not None
-"""
+    assert x.return_attributes() is not None"""
