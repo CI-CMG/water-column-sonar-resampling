@@ -30,9 +30,6 @@ jobs:
     - name: Install the project
       run: uv sync --all-extras --dev
 
-    - name: Install project in editable mode
-      run: uv pip install -e .
-
     - name: Run tests
       run: uv run pytest tests
 
