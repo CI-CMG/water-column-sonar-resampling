@@ -28,3 +28,11 @@ dependencies = [
 dev = [
     "pytest",
 ]
+
+[dependency-groups]
+dev = [
+    "water-column-sonar-resampling",
+]
+
+[tool.uv.sources]
+water-column-sonar-resampling = { workspace = true }
