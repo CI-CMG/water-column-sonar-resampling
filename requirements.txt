@@ -1,7 +1,0 @@
-xarray
-s3fs
-numpy
-pandas
-matplotlib
-scipy
-zarr

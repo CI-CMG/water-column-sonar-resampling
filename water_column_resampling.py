@@ -1,10 +1,9 @@
 import xarray as xr
 import s3fs
 import json
-import asyncio
 
 # Can change method name later on
-class water_comlumn_resample:
+class water_column_resample:
     def __init__(self, store_link):
         self.store_link = store_link
         self.file_system = s3fs.S3FileSystem(anon=True)
