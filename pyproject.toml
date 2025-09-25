@@ -16,6 +16,8 @@ keywords = ["reprocessing", "sonar", "water column", "zarr"]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "dask[array]>=2025.9.1",
+    "numcodecs>=0.16.2",
     "numpy>=2.3.3",
     "pandas>=2.3.2",
     "s3fs>=2025.9.0",
@@ -26,12 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-]
-
-[dependency-groups]
-dev = [
-    "water-column-sonar-resampling",
+    "pytest>=8.4.2",
 ]
 
 [tool.uv.sources]

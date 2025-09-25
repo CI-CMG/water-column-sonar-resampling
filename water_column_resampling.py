@@ -1,6 +1,7 @@
 import xarray as xr
 import s3fs
 import json
+import numcodecs
 
 # Can change method name later on
 class water_column_resample:
@@ -39,15 +40,25 @@ class water_column_resample:
         else: # Returns default dimensions of the dataset
             return json.dumps(dict(self.data_set.sizes), indent=2) # Prints the shape of the data
 
+    # Creates a copy of the sv data from the store opened    
+    def copy_sv_data(self):
+        ds = self.data_set
+        ds = ds.chunk({'depth': 512, 'time': 512, 'frequency': 1})
+
+        # TODO: TypeError: Expected a BytesBytesCodec. Got <class 'numcodecs.blosc.Blosc'> instead.
+        ds[['Sv']].to_zarr(
+            "test.zarr",
+            mode="a", 
+            align_chunks=True)
+
     # TODO: Make it all close cleanly-- later goal
     def close(self):
         pass
 
-"""
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_comlumn_resample("noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB1906/EK60/HB1906.zarr/")
+    x = water_column_resample("noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB1906/EK60/HB1906.zarr/")
     print(x.return_attributes())
     print(x.return_shape()) # Shows the Sv dimensions by default
     print(x.return_shape(variable="Sv")) # You can pass additonal variables like: speed, bottom, longitude, latitude, etc.
-"""
+    x.copy_sv_data()
