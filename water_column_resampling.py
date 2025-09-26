@@ -42,14 +42,23 @@ class water_column_resample:
 
     # Creates a copy of the sv data from the store opened    
     def copy_sv_data(self):
-        ds = self.data_set
-        ds = ds.chunk({'depth': 512, 'time': 512, 'frequency': 1})
+        if self.data_set is None:
+            self.open_store() # Opens the store if it hasn't been opened yet
+        
+        # This opens the store from the cloud servers
+        cloud_store = self.data_set
+        cloud_store = cloud_store.chunk({'depth': 512, 'time': 512, 'frequency': 1})
 
-        # TODO: TypeError: Expected a BytesBytesCodec. Got <class 'numcodecs.blosc.Blosc'> instead.
-        ds[['Sv']].to_zarr(
-            "test.zarr",
-            mode="a", 
-            align_chunks=True)
+        # This opens a local zarr store to write to
+        local_store = xr.Dataset()
+        local_store['Sv'] = xr.DataArray(dtype='float32')
+
+        # Pulling the sv data from the cloud store
+        sv_data = cloud_store[['Sv']]
+        sv_data = sv_data.chunk({'depth': 512, 'time': 512, 'frequency': 1}) # Re-chunking to optimize performance
+        
+        # Writing the sv data to the local store (copies the following data arrays: Sv, frequency, time, depth)
+        local_store = sv_data.to_zarr('local_sv_data.zarr', mode='w', compute=True, zarr_format=2)
 
     # TODO: Make it all close cleanly-- later goal
     def close(self):
@@ -57,8 +66,5 @@ class water_column_resample:
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_column_resample("noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB1906/EK60/HB1906.zarr/")
-    print(x.return_attributes())
-    print(x.return_shape()) # Shows the Sv dimensions by default
-    print(x.return_shape(variable="Sv")) # You can pass additonal variables like: speed, bottom, longitude, latitude, etc.
+    x = water_column_resample("noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr/")
     x.copy_sv_data()

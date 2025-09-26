@@ -208,3 +208,6 @@ __marimo__/
 
 # UV stuff:
 .idea*
+
+# Zarr stores and files:
+*.zarr
