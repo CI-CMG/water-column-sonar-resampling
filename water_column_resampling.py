@@ -51,7 +51,7 @@ class water_column_resample:
 
         # This opens a local zarr store to write to
         local_store = xr.Dataset()
-        local_store['Sv'] = xr.DataArray(dtype='float32')
+        local_store['Sv'] = xr.DataArray()
 
         # Pulling the sv data from the cloud store
         sv_data = cloud_store[['Sv']]
