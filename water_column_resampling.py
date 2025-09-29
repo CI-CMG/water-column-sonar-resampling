@@ -70,30 +70,30 @@ class water_column_resample:
         # This opens the store from the cloud servers
         cloud_store = self.data_set
         cloud_store = cloud_store.chunk({'depth': 512, 'time': 512})
+        masked_store = cloud_store.Sv.where(cloud_store.depth < cloud_store.bottom)
 
         # Pulling specific data from the cloud store
-        depth = cloud_store['depth'].values
-        time = cloud_store['time'].values
+        depth = masked_store['depth'].values
+        time = masked_store['time'].values
 
-        # This opens a local zarr store to write to
+        dt_array = xr.DataArray(
+            data=np.empty((len(depth), len(time)), dtype='int16'),
+            dims=('depth', 'time')
+            # TODO: Copy in 1024 chunks across the time axis (for loops)
+        )
+
         local_store = xr.Dataset(
             {
-                "Sv": xr.DataArray(
-                    data=np.empty((len(depth), len(time)), dtype='int16'),
-                    dims=("depth", "time"),
-                    coords={"depth": depth, "time": time}
-                )
+                'local_array':dt_array,
+                'depth': depth, # Remove if we don't want to copy depth and time coordinates to local store
+                'time': time
             }
         )
 
         local_store = local_store.chunk({'depth': 512, 'time': 512}) # Re-chunking to optimize performance
-
-        local_store['Sv'].plot() # Quick plot to see if it works-- can be removed later
-
-        plt.show()
         
-        # Writing the sv data to the local store (copies the following data arrays: Sv, frequency, time, depth)
-        # local_store = local_store.to_zarr('local_dataarray.zarr', mode='w', compute=True, zarr_format=2)
+        # Writing the sv data to the local store (copies the following data arrays: depth, time)
+        local_store = local_store.to_zarr('local_dataarray.zarr', mode='w', compute=True, zarr_format=2)
 
     # TODO: Make it all close cleanly-- later goal
     def close(self):
