@@ -3,6 +3,8 @@ import s3fs
 import json
 import numpy as np
 import tqdm
+import dask
+import zarr
 
 # Can change method name later on
 class water_column_resample:
@@ -77,7 +79,7 @@ class water_column_resample:
 
         # Initializing the local data array
         dt_array = xr.DataArray(
-            data=np.empty((len(time), len(depth)), dtype='int8'),
+            data=dask.array.zeros((len(time), len(depth)), dtype='int8'),
             dims=('time', 'depth')
         )
 
@@ -87,8 +89,12 @@ class water_column_resample:
                 'local_array':dt_array,
             }
         )
+
+        local_store.to_zarr('local_dataarray.zarr', mode='w', compute=False, zarr_format=2)
+
+        local_store = zarr.open('local_dataarray.zarr', mode='a')
         
-        # TODO: Copy in 1024 chunks across the time axis (for loops)
+        # Copies the data in 1024 chunks across the time axis (for loops)
         depth_chunk = 1024
         time_chunk = 1024
         for time_start in tqdm.tqdm(range(0, len(time), time_chunk), desc="Processing time chunks"):
@@ -112,7 +118,7 @@ class water_column_resample:
                 local_store['local_array'][time_start:time_end, depth_start:depth_end] = chunk_clean
 
         # Writing the sv data to the local store (copies the following data arrays: depth, time)
-        local_store = local_store.to_zarr('local_dataarray.zarr', mode='w', compute=True, zarr_format=2)
+        # local_store = local_store.to_zarr('local_dataarray.zarr', mode='w', compute=True, zarr_format=2)
 
     # TODO: Make it all close cleanly-- later goal
     def close(self):
