@@ -2,8 +2,7 @@ import xarray as xr
 import s3fs
 import json
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+import tqdm
 
 # Can change method name later on
 class water_column_resample:
@@ -69,29 +68,49 @@ class water_column_resample:
         
         # This opens the store from the cloud servers
         cloud_store = self.data_set
-        cloud_store = cloud_store.chunk({'depth': 512, 'time': 512})
+        cloud_store = cloud_store.chunk({'time': 1024, 'depth': 1024})
         masked_store = cloud_store.Sv.where(cloud_store.depth < cloud_store.bottom)
 
         # Pulling specific data from the cloud store
         depth = masked_store['depth'].values
         time = masked_store['time'].values
 
+        # Initializing the local data array
         dt_array = xr.DataArray(
-            data=np.empty((len(depth), len(time)), dtype='int16'),
-            dims=('depth', 'time')
-            # TODO: Copy in 1024 chunks across the time axis (for loops)
+            data=np.empty((len(time), len(depth)), dtype='int8'),
+            dims=('time', 'depth')
         )
 
+        # Initializing the local store with the data array in it
         local_store = xr.Dataset(
             {
                 'local_array':dt_array,
-                'depth': depth, # Remove if we don't want to copy depth and time coordinates to local store
-                'time': time
             }
         )
-
-        local_store = local_store.chunk({'depth': 512, 'time': 512}) # Re-chunking to optimize performance
         
+        # TODO: Copy in 1024 chunks across the time axis (for loops)
+        depth_chunk = 1024
+        time_chunk = 1024
+        for time_start in tqdm.tqdm(range(0, len(time), time_chunk), desc="Processing time chunks"):
+            time_end = min(time_start + time_chunk, len(time))
+            for depth_start in tqdm.tqdm(range(0, len(depth), depth_chunk), desc="Processing depth chunks", leave=False):
+                depth_end = min(depth_start + depth_chunk, len(depth))
+                
+                # Extract the chunk from the masked_store
+                chunk = masked_store.isel(depth=slice(depth_start, depth_end), time=slice(time_start, time_end))
+
+                # Make it into a 2D chunk
+                chunk_2d = chunk.mean(dim='frequency', skipna=True).transpose('time', 'depth')
+
+                # Add/Replace all needed zeros
+                chunk_clean = np.nan_to_num(chunk_2d.values, nan=0.0, posinf=0.0, neginf=0.0)
+
+                # Recast
+                chunk_clean = chunk_clean.astype('int8')
+                
+                # Assign the chunked data to the corresponding location in the local_store
+                local_store['local_array'][time_start:time_end, depth_start:depth_end] = chunk_clean
+
         # Writing the sv data to the local store (copies the following data arrays: depth, time)
         local_store = local_store.to_zarr('local_dataarray.zarr', mode='w', compute=True, zarr_format=2)
 
