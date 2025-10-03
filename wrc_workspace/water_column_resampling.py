@@ -3,7 +3,6 @@ import s3fs
 import json
 import numpy as np
 import tqdm
-import dask
 import zarr
 
 # Can change method name later on
@@ -17,12 +16,17 @@ class water_column_resample:
 
     # Actually opens the zarr store based on the link given
     def open_store(self):
-        self.store = s3fs.S3Map(root=self.store_link, s3=self.file_system)
-        self.data_set = xr.open_zarr(store=self.store, consolidated=True)
+        self.data_set = xr.open_dataset(
+            f"s3://{self.store_link}", 
+            engine='zarr', 
+            storage_options={'anon': True}, 
+            chunks="auto"
+            )
+
 
     # Returns default attributes of the dataset
     def return_attributes(self):
-        if self.store is None:
+        if self.data_set is None:
             self.open_store() # Opens the store if it hasn't been opened yet
 
         self.attributes = dict(self.data_set.attrs) 
@@ -50,7 +54,6 @@ class water_column_resample:
         
         # This opens the store from the cloud servers
         cloud_store = self.data_set
-        cloud_store = cloud_store.chunk({'depth': 512, 'time': 512, 'frequency': 1})
 
         # This opens a local zarr store to write to
         local_store = xr.Dataset()
@@ -58,7 +61,6 @@ class water_column_resample:
 
         # Pulling the sv data from the cloud store
         sv_data = cloud_store[['Sv']]
-        sv_data = sv_data.chunk({'depth': 512, 'time': 512, 'frequency': 1})
 
         # Writing the sv data to the local store (copies the following data arrays: Sv, frequency, time, depth)
         local_store = sv_data.to_zarr('local_sv_data.zarr', mode='w', compute=True, zarr_format=2)
@@ -79,14 +81,16 @@ class water_column_resample:
 
         # Initializing the local data array
         dt_array = xr.DataArray(
-            data=dask.array.zeros((len(time), len(depth)), dtype='int8'),
-            dims=('time', 'depth')
+            data=np.empty((len(depth), len(time)), dtype='int8'),
+            dims=('depth', 'time')
         )
+
+        dt_array = dt_array.chunk({'time': 1024, 'depth': 1024})
 
         # Initializing the local store with the data array in it
         local_store = xr.Dataset(
-            {
-                'local_array':dt_array,
+            data_vars={
+                'Sv': dt_array
             }
         )
 
@@ -103,22 +107,16 @@ class water_column_resample:
                 depth_end = min(depth_start + depth_chunk, len(depth))
                 
                 # Extract the chunk from the masked_store
-                chunk = masked_store.isel(depth=slice(depth_start, depth_end), time=slice(time_start, time_end))
-
-                # Make it into a 2D chunk
-                chunk_2d = chunk.mean(dim='frequency', skipna=True).transpose('time', 'depth')
+                chunk = masked_store.isel(depth=slice(depth_start, depth_end), time=slice(time_start, time_end), frequency=0)
 
                 # Add/Replace all needed zeros
-                chunk_clean = np.nan_to_num(chunk_2d.values, nan=0.0, posinf=0.0, neginf=0.0)
+                chunk_clean = np.nan_to_num(chunk.values, nan=0.0, posinf=0.0, neginf=0.0)
 
                 # Recast
                 chunk_clean = chunk_clean.astype('int8')
                 
                 # Assign the chunked data to the corresponding location in the local_store
-                local_store['local_array'][time_start:time_end, depth_start:depth_end] = chunk_clean
-
-        # Writing the sv data to the local store (copies the following data arrays: depth, time)
-        # local_store = local_store.to_zarr('local_dataarray.zarr', mode='w', compute=True, zarr_format=2)
+                local_store['Sv'][depth_start:depth_end, time_start:time_end] = chunk_clean
 
     # TODO: Make it all close cleanly-- later goal
     def close(self):
