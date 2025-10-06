@@ -17,12 +17,11 @@ class water_column_resample:
     # Actually opens the zarr store based on the link given
     def open_store(self):
         self.data_set = xr.open_dataset(
-            f"s3://{self.store_link}", 
+            self.store_link, 
             engine='zarr', 
-            storage_options={'anon': True}, 
             chunks="auto"
+            # AVOID PUTTING STORAGE OPTIONS HERE !!!
             )
-
 
     # Returns default attributes of the dataset
     def return_attributes(self):
@@ -72,7 +71,6 @@ class water_column_resample:
         
         # This opens the store from the cloud servers
         cloud_store = self.data_set
-        cloud_store = cloud_store.chunk({'time': 1024, 'depth': 1024})
         masked_store = cloud_store.Sv.where(cloud_store.depth < cloud_store.bottom)
 
         # Pulling specific data from the cloud store
@@ -124,5 +122,5 @@ class water_column_resample:
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_column_resample("noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr/")
+    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
     x.new_dataarray()
