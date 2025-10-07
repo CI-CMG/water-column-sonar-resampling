@@ -126,8 +126,9 @@ class water_column_resample:
     # TODO: Make it all close cleanly-- later goal
     def close(self):
         pass
-
+"""
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
     x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
     x.new_dataarray()
+"""
