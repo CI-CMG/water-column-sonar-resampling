@@ -16,12 +16,19 @@ class water_column_resample:
 
     # Actually opens the zarr store based on the link given
     def open_store(self):
-        self.data_set = xr.open_dataset(
-            self.store_link, 
-            engine='zarr', 
-            chunks="auto"
-            # AVOID PUTTING STORAGE OPTIONS HERE !!!
-            )
+        if "s3://" in self.store_link:
+            self.data_set = xr.open_dataset(
+                self.store_link, 
+                engine='zarr',
+                chunks='auto',
+                storage_options={'anon': True}
+                )
+        else:
+            self.data_set = xr.open_dataset(
+                self.store_link, 
+                engine='zarr', 
+                chunks='auto'
+                )
 
     # Returns default attributes of the dataset
     def return_attributes(self):
