@@ -69,6 +69,7 @@ def test_new_array(tmp_path):
     local_store = zarr.open(local_store_path, mode='r')
 
     assert 'Sv' in local_store
+    assert local_store['Sv'].dtype == np.int8
 
     # Build expected array from the original sv_data (frequency, depth, time)
     expected = sv_data[0].copy()
