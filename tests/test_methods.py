@@ -33,6 +33,8 @@ def test_new_array(tmp_path):
     time = np.arange(0, 6)
     freq = np.array([18])
 
+    # Make synthetic data deterministic for testing
+    np.random.seed(0)
     sv_data = np.random.randint(-70, -20, size=(len(freq), len(depth), len(time))).astype(np.float32)
     bottom = np.array([1, 2, 2, 3, 3, 4])
     
@@ -63,9 +65,21 @@ def test_new_array(tmp_path):
     x = wcr.water_column_resample(temp_store)
     local_store_path = tmp_path/'local_dataarray.zarr'
     x.new_dataarray(output_path=local_store_path)
-    assert local_store_path.exists()
 
     local_store = zarr.open(local_store_path, mode='r')
+
     assert 'Sv' in local_store
-    assert local_store['Sv'].shape == (4, 6)  # Check if the shape matches (depth, time)
-    
+
+    # Build expected array from the original sv_data (frequency, depth, time)
+    expected = sv_data[0].copy()
+    for t_idx in range(expected.shape[1]):
+        mask = np.arange(expected.shape[0]) >= bottom[t_idx]
+        expected[mask, t_idx] = 0.0
+
+    expected = expected.astype(np.int8)
+
+    stored = local_store['Sv'][:]
+
+    # Ensure shapes match and values are equal after masking and casting
+    assert stored.shape == expected.shape
+    assert np.array_equal(stored, expected)
