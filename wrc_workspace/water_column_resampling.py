@@ -71,8 +71,8 @@ class water_column_resample:
         # Writing the sv data to the local store (copies the following data arrays: Sv, frequency, time, depth)
         local_store = sv_data.to_zarr('local_sv_data.zarr', mode='w', compute=True, zarr_format=2)
 
-    # Creates a new dataarray with just depth and time-- copies is locally   
-    def new_dataarray(self):
+    # Creates a new dataarray with just depth and time-- copies it locally   
+    def new_dataarray(self, output_path='local_dataarray.zarr'):
         if self.data_set is None:
             self.open_store() # Opens the store if it hasn't been opened yet
         
@@ -99,9 +99,9 @@ class water_column_resample:
             }
         )
 
-        local_store.to_zarr('local_dataarray.zarr', mode='w', compute=False, zarr_format=2)
+        local_store.to_zarr(output_path, mode='w', compute=False, zarr_format=2)
 
-        local_store = zarr.open('local_dataarray.zarr', mode='a')
+        local_store = zarr.open(output_path, mode='a')
         
         # Copies the data in 1024 chunks across the time axis (for loops)
         depth_chunk = 1024

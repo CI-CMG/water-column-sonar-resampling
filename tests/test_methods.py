@@ -1,9 +1,10 @@
 import wrc_workspace.water_column_resampling as wcr
 import numpy as np
 import xarray as xr
+import zarr
 
 def test_open(tmp_path):
-    # Opening a temporary zarr store to test with
+    # Opening a temporary zarr array to test with
     dt_array = xr.DataArray(
         data=np.empty((1024, 1024), dtype='int8'),
         dims=('depth', 'time')
@@ -27,3 +28,44 @@ def test_open(tmp_path):
     assert x.return_attributes() is not None
     assert x.return_shape() is not None
 
+def test_new_array(tmp_path):
+    depth = np.arange(0, 4)
+    time = np.arange(0, 6)
+    freq = np.array([18])
+
+    sv_data = np.random.randint(-70, -20, size=(len(freq), len(depth), len(time))).astype(np.float32)
+    bottom = np.array([1, 2, 2, 3, 3, 4])
+    
+    # Opening a temporary zarr array to test with
+    dt_array = xr.Dataset(
+        {
+            'Sv': (('frequency', 'depth', 'time'), sv_data),
+            'bottom': (('time',), bottom)
+        },
+
+        coords= {
+            'frequency': freq,
+            'depth': depth,
+            'time': time
+        },
+    )
+
+    # Chucking it into a baby store
+    dt_array = dt_array.chunk({'frequency': 1, 'time': 2, 'depth': 2})
+
+    # Defining a temporary store path
+    temp_store = f'{tmp_path}/TMP_STORE.zarr'
+
+    # Writing to the local store to a temporary zarr file
+    dt_array.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
+
+    # Opening it and running tests
+    x = wcr.water_column_resample(temp_store)
+    local_store_path = tmp_path/'local_dataarray.zarr'
+    x.new_dataarray(output_path=local_store_path)
+    assert local_store_path.exists()
+
+    local_store = zarr.open(local_store_path, mode='r')
+    assert 'Sv' in local_store
+    assert local_store['Sv'].shape == (4, 6)  # Check if the shape matches (depth, time)
+    
