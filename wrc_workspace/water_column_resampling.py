@@ -52,6 +52,23 @@ class water_column_resample:
 
         else: # Returns default dimensions of the dataset
             return json.dumps(dict(self.data_set.sizes), indent=2) # Prints the shape of the data
+
+    # TODO: Can condense the methods above and below later on-- house keeping, QoL item
+
+    # Returns the default dimensions of the data set, or the dimensions of a specified variable/coordinate
+    def get_dimension(self, variable=None):
+        if self.data_set is None:
+            self.open_store() # Opens the store if it hasn't been opened yet
+        
+        if variable: # Processes a specific variable if one is given
+            if variable in self.data_set.coords:
+                    var_dims = dict(zip(self.data_set[variable].dims, self.data_set[variable].shape))
+                    return json.dumps({f"{variable}_dimension": var_dims}, indent=2)
+            else:
+                    return json.dumps({"error": f"Variable '{variable}' not found in dataset"}, indent=2)
+
+        else: # Returns default dimensions of the dataset
+                return json.dumps(dict(self.data_set.sizes), indent=2) # Prints the shape of the data
         
     # Creates a local copy of the sv data (complete sv, depth, time and frequency)
     def copy_sv_data(self):
@@ -126,9 +143,8 @@ class water_column_resample:
     # TODO: Make it all close cleanly-- later goal
     def close(self):
         pass
-"""
+
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
     x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
-    x.new_dataarray()
-"""
+    print(x.get_dimension("time"))
