@@ -39,36 +39,30 @@ class water_column_resample:
         return json.dumps(self.attributes, indent=2) 
     
     # Returns the default dimensions of the data set, or the dimensions of a specified variable
-    def return_shape(self, variable=None):
+    def get_dimension(self, variable=None):
         if self.data_set is None:
             self.open_store() # Opens the store if it hasn't been opened yet
 
         if variable: # Processes a specific variable if one is given
-            if variable in self.data_set.data_vars:
+            if variable in self.data_set.data_vars or self.data_set.coords:
                 var_dims = dict(zip(self.data_set[variable].dims, self.data_set[variable].shape))
-                return json.dumps({f"{variable}_dimensions": var_dims}, indent=2)
+                return var_dims # json.dumps({f"{variable}_dimensions": var_dims}, indent=2)
             else:
                 return json.dumps({"error": f"Variable '{variable}' not found in dataset"}, indent=2)
 
         else: # Returns default dimensions of the dataset
             return json.dumps(dict(self.data_set.sizes), indent=2) # Prints the shape of the data
 
-    # TODO: Can condense the methods above and below later on-- house keeping, QoL item
+    # Given the time dimension, determines the number of zoom levels    
+    def determine_zoom_levels(self):
+        time_dim = self.get_dimension('time')['time']
+        zoom_levels = 0
 
-    # Returns the default dimensions of the data set, or the dimensions of a specified variable/coordinate
-    def get_dimension(self, variable=None):
-        if self.data_set is None:
-            self.open_store() # Opens the store if it hasn't been opened yet
-        
-        if variable: # Processes a specific variable if one is given
-            if variable in self.data_set.coords:
-                    var_dims = dict(zip(self.data_set[variable].dims, self.data_set[variable].shape))
-                    return json.dumps({f"{variable}_dimension": var_dims}, indent=2)
-            else:
-                    return json.dumps({"error": f"Variable '{variable}' not found in dataset"}, indent=2)
+        while time_dim >= 4096: # Can define some kind of acceptable range later
+            time_dim = time_dim // 2
+            zoom_levels += 1
 
-        else: # Returns default dimensions of the dataset
-                return json.dumps(dict(self.data_set.sizes), indent=2) # Prints the shape of the data
+        return zoom_levels
         
     # Creates a local copy of the sv data (complete sv, depth, time and frequency)
     def copy_sv_data(self):
@@ -87,6 +81,19 @@ class water_column_resample:
 
         # Writing the sv data to the local store (copies the following data arrays: Sv, frequency, time, depth)
         local_store = sv_data.to_zarr('local_sv_data.zarr', mode='w', compute=True, zarr_format=2)
+
+    # Makes an empty datatree based on the number of zoom levels
+    def make_tree(self):
+        levels = self.determine_zoom_levels()
+        tree = xr.DataTree(name="level_0")
+        current_node = tree
+
+        # For loop to continuously add levels
+        for level in range(1, levels + 1):
+            name = f"level_{level}"
+            current_node[name] = xr.DataTree(name=name)
+        
+        return tree
 
     # Creates a new dataarray with just depth and time-- copies it locally   
     def new_dataarray(self, output_path='local_dataarray.zarr'):
@@ -148,3 +155,5 @@ class water_column_resample:
 if __name__ == "__main__":
     x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
     print(x.get_dimension("time"))
+    print(x.determine_zoom_levels())
+    print(x.make_tree())

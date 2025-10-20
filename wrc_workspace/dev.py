@@ -40,14 +40,7 @@ def make_tree(levels):
     for level in range(1, levels + 1):
         name = f"level_{level}"
         current_node[name] = xr.DataTree(name=name)
-        current_node = current_node[name]
-        
-    for node in tree.subtree:
-        print(f"  {node.path}")
     
     return tree
 
-tree = make_tree(4)
-
-# make_tree(4)
-# print(xr.__version__)
+print(determine_zoom_levels(89911))
