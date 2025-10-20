@@ -26,7 +26,7 @@ def test_open(tmp_path):
     x = wcr.water_column_resample(temp_store)
     x.open_store()
     assert x.return_attributes() is not None
-    assert x.return_shape() is not None
+    assert x.get_dimension() is not None
 
 def test_new_array(tmp_path):
     depth = np.arange(0, 4)
