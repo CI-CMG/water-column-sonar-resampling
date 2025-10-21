@@ -95,6 +95,35 @@ class water_column_resample:
         
         return tree
 
+    def resample_tree(self):
+        if self.data_set is None:
+            self.open_store() # Opens the store if it hasn't been opened yet
+        
+        tree = self.make_tree()
+        root_ds = self.data_set
+        current_ds = root_ds
+        zoom_levels = self.determine_zoom_levels()
+
+        for level in range(1, zoom_levels + 1):
+            
+            # TODO: MAKE THIS RESAMPLE WHAT NEW_DATAARRAY MAKES
+            name = level
+
+            masked = current_ds['Sv'].where(current_ds['Sv'] != 0)
+
+            # Coarsen while skipping NaNs (formerly 0s)
+            downsampled_Sv = masked.coarsen(time=2, boundary='trim').mean(skipna=True)
+
+            # Fill NaNs back with 0 after averaging
+            downsampled_Sv = downsampled_Sv.fillna(0).astype('int8')
+
+            resampled_ds = xr.Dataset({'Sv': downsampled_Sv})
+
+            tree[f'level_{name}'] = xr.DataTree(name=f'level_{name}', dataset=resampled_ds)
+            current_ds = resampled_ds
+
+        return tree
+
     # Creates a new dataarray with just depth and time-- copies it locally   
     def new_dataarray(self, output_path='local_dataarray.zarr'):
         if self.data_set is None:
@@ -156,4 +185,4 @@ if __name__ == "__main__":
     x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
     print(x.get_dimension("time"))
     print(x.determine_zoom_levels())
-    print(x.make_tree())
+    print(x.resample_tree())
