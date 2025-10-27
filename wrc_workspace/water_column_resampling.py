@@ -16,7 +16,7 @@ class water_column_resample:
 
     # Actually opens the zarr store based on the link given
     def open_store(self):
-        if "s3://" in self.store_link:
+        if "s3://" in str(self.store_link):
             self.data_set = xr.open_dataset(
                 self.store_link, 
                 engine='zarr',
@@ -85,13 +85,15 @@ class water_column_resample:
     # Makes an empty datatree based on the number of zoom levels
     def make_tree(self):
         levels = self.determine_zoom_levels()
-        tree = xr.DataTree(name="level_0")
-        current_node = tree
+        level_0 = self.new_dataarray() # This calls the new_dataarray method to create level 0 (base data)
+
+        tree = xr.DataTree(name='root')
+        tree['level_0'] = xr.DataTree(name='level_0', dataset=level_0)
 
         # For loop to continuously add levels
         for level in range(1, levels + 1):
             name = f"level_{level}"
-            current_node[name] = xr.DataTree(name=name)
+            tree[name] = xr.DataTree(name=name)
         
         return tree
 
@@ -106,7 +108,10 @@ class water_column_resample:
 
         for level in range(1, zoom_levels + 1):
             
-            # TODO: MAKE THIS RESAMPLE WHAT NEW_DATAARRAY MAKES
+            # TODO: make this resample lol
+            # - open level_0 with new_datarray
+            # - use corsen method to downsample by 2x on the previous level
+
             name = level
 
             masked = current_ds['Sv'].where(current_ds['Sv'] != 0)
@@ -125,7 +130,7 @@ class water_column_resample:
         return tree
 
     # Creates a new dataarray with just depth and time-- copies it locally   
-    def new_dataarray(self, output_path='local_dataarray.zarr'):
+    def new_dataarray(self):
         if self.data_set is None:
             self.open_store() # Opens the store if it hasn't been opened yet
         
@@ -151,10 +156,6 @@ class water_column_resample:
                 'Sv': dt_array
             }
         )
-
-        local_store.to_zarr(output_path, mode='w', compute=False, zarr_format=2)
-
-        local_store = zarr.open(output_path, mode='a')
         
         # Copies the data in 1024 chunks across the time axis (for loops)
         depth_chunk = 1024
@@ -176,13 +177,13 @@ class water_column_resample:
                 # Assign the chunked data to the corresponding location in the local_store
                 local_store['Sv'][depth_start:depth_end, time_start:time_end] = chunk_clean
 
-    # TODO: Make it all close cleanly-- later goal
-    def close(self):
-        pass
+        return local_store
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
     x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
     print(x.get_dimension("time"))
     print(x.determine_zoom_levels())
-    print(x.resample_tree())
+    print(x.make_tree())
+    # print(x.resample_tree())
+    # print(x.new_dataarray())

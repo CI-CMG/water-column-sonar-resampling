@@ -28,6 +28,8 @@ def test_open(tmp_path):
     assert x.return_attributes() is not None
     assert x.get_dimension() is not None
 
+# TODO: EDIT THIS TEST LMAO
+
 def test_new_array(tmp_path):
     depth = np.arange(0, 4)
     time = np.arange(0, 6)
@@ -56,18 +58,16 @@ def test_new_array(tmp_path):
     dt_array = dt_array.chunk({'frequency': 1, 'time': 2, 'depth': 2})
 
     # Defining a temporary store path
-    temp_store = f'{tmp_path}/TMP_STORE.zarr'
+    temp_store = tmp_path/'TMP_STORE.zarr'
 
     # Writing to the local store to a temporary zarr file
     dt_array.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
 
     # Opening it and running tests
     x = wcr.water_column_resample(temp_store)
-    local_store_path = tmp_path/'local_dataarray.zarr'
-    x.new_dataarray(output_path=local_store_path)
+    local_store = x.new_dataarray()
 
-    local_store = zarr.open(local_store_path, mode='r')
-
+    assert isinstance(local_store, xr.Dataset)
     assert 'Sv' in local_store
     assert local_store['Sv'].dtype == np.int8
 
