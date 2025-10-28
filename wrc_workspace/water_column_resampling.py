@@ -107,25 +107,15 @@ class water_column_resample:
         zoom_levels = self.determine_zoom_levels()
 
         for level in range(1, zoom_levels + 1):
-            
-            # TODO: make this resample lol
-            # - open level_0 with new_datarray
-            # - use corsen method to downsample by 2x on the previous level
 
-            name = level
+            # Uses the coarsen method to downsample by a factor of 2 along the time dimension
+            resampled_data = current_ds.coarsen(time=2).mean()
 
-            masked = current_ds['Sv'].where(current_ds['Sv'] != 0)
+            # Assigns the resampled data to the appropriate level in the tree
+            tree[f'level_{level}'].dataset = resampled_data
 
-            # Coarsen while skipping NaNs (formerly 0s)
-            downsampled_Sv = masked.coarsen(time=2, boundary='trim').mean(skipna=True)
-
-            # Fill NaNs back with 0 after averaging
-            downsampled_Sv = downsampled_Sv.fillna(0).astype('int8')
-
-            resampled_ds = xr.Dataset({'Sv': downsampled_Sv})
-
-            tree[f'level_{name}'] = xr.DataTree(name=f'level_{name}', dataset=resampled_ds)
-            current_ds = resampled_ds
+            # Updates the current dataset for the next iteration
+            current_ds = resampled_data
 
         return tree
 
@@ -184,6 +174,6 @@ if __name__ == "__main__":
     x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
     print(x.get_dimension("time"))
     print(x.determine_zoom_levels())
-    print(x.make_tree())
-    # print(x.resample_tree())
+    # print(x.make_tree())
+    print(x.resample_tree())
     # print(x.new_dataarray())
