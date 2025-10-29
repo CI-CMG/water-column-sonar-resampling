@@ -7,12 +7,13 @@ import zarr
 
 # Can change method name later on
 class water_column_resample:
-    def __init__(self, store_link):
+    def __init__(self, store_link, fraction):
         self.store_link = store_link
         self.file_system = s3fs.S3FileSystem(anon=True)
         self.store = None
         self.data_set = None
         self.attributes = None
+        self.fraction = fraction # This is strictly for testing purposes as it will slice the time dimension to x% of the original
 
     # Actually opens the zarr store based on the link given
     def open_store(self):
@@ -29,6 +30,10 @@ class water_column_resample:
                 engine='zarr', 
                 chunks='auto'
                 )
+            
+        if self.fraction < 1.0:
+            max_index = int(len(self.data_set.time) * self.fraction)
+            self.data_set = self.data_set.isel(time=slice(0, max_index))
 
     # Returns default attributes of the dataset
     def return_attributes(self):
@@ -109,7 +114,7 @@ class water_column_resample:
             last_ds = tree[last_level].dataset
 
             # Uses the coarsen method to downsample by a factor of 2 along the time dimension
-            resampled_data = last_ds.coarsen(time=2).mean()
+            resampled_data = last_ds.coarsen(time=2, boundary='trim').mean()
 
             # Assigns the resampled data to the appropriate level in the tree
             tree[f'level_{level}'].dataset = resampled_data
@@ -168,7 +173,7 @@ class water_column_resample:
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr")
+    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.25)
     print(x.get_dimension("time"))
     print(x.determine_zoom_levels())
     # print(x.make_tree())
