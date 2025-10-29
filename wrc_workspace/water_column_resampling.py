@@ -102,20 +102,19 @@ class water_column_resample:
             self.open_store() # Opens the store if it hasn't been opened yet
         
         tree = self.make_tree()
-        root_ds = self.data_set
-        current_ds = root_ds
         zoom_levels = self.determine_zoom_levels()
 
         for level in range(1, zoom_levels + 1):
 
-            # Uses the coarsen method to downsample by a factor of 2 along the time dimension
-            resampled_data = current_ds.coarsen(time=2).mean()
+            # Identifies the last level of the tree
+            last_level = f'level_{level - 1}'
+            last_level_ds = tree[last_level].dataset
+
+            # Uses the coarsen method to downsample by a factor of 2 along the TIME dimension (and only time)
+            resampled_data = last_level.coarsen(time=2).mean()
 
             # Assigns the resampled data to the appropriate level in the tree
             tree[f'level_{level}'].dataset = resampled_data
-
-            # Updates the current dataset for the next iteration
-            current_ds = resampled_data
 
         return tree
 
