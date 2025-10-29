@@ -87,7 +87,8 @@ class water_column_resample:
         levels = self.determine_zoom_levels()
         level_0 = self.new_dataarray() # This calls the new_dataarray method to create level 0 (base data)
 
-        tree = xr.DataTree(name='root', dataset=level_0)
+        tree = xr.DataTree(name='root')
+        tree['level_0'] = xr.DataTree(name='level_0', dataset=level_0)
 
         # For loop to continuously add levels
         for level in range(1, levels + 1):
@@ -99,14 +100,16 @@ class water_column_resample:
     def resample_tree(self):
         
         tree = self.make_tree()
-        root_ds = self.data_set
-        current_ds = root_ds
         zoom_levels = self.determine_zoom_levels()
 
         for level in range(1, zoom_levels + 1):
 
+            # Getting the last level of the tree
+            last_level = f'level_{level - 1}'
+            last_ds = tree[last_level].dataset
+
             # Uses the coarsen method to downsample by a factor of 2 along the time dimension
-            resampled_data = current_ds.coarsen(time=2).mean()
+            resampled_data = last_ds.coarsen(time=2).mean()
 
             # Assigns the resampled data to the appropriate level in the tree
             tree[f'level_{level}'].dataset = resampled_data
