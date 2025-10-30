@@ -34,29 +34,17 @@ class water_column_resample:
         if self.fraction < 1.0:
             max_index = int(len(self.data_set.time) * self.fraction)
             self.data_set = self.data_set.isel(time=slice(0, max_index))
-
-    # Returns default attributes of the dataset
-    def return_attributes(self):
-        if self.data_set is None:
-            self.open_store() # Opens the store if it hasn't been opened yet
-
-        self.attributes = dict(self.data_set.attrs) 
-        return json.dumps(self.attributes, indent=2) 
     
     # Returns the default dimensions of the data set, or the dimensions of a specified variable
-    def get_dimension(self, variable=None):
-        if self.data_set is None:
-            self.open_store() # Opens the store if it hasn't been opened yet
+    def get_dimension(self, dimension=None):
+        self.open_store()
+        ds = self.data_set
 
-        if variable: # Processes a specific variable if one is given
-            if variable in self.data_set.data_vars or self.data_set.coords:
-                var_dims = dict(zip(self.data_set[variable].dims, self.data_set[variable].shape))
-                return var_dims # json.dumps({f"{variable}_dimensions": var_dims}, indent=2)
-            else:
-                return json.dumps({"error": f"Variable '{variable}' not found in dataset"}, indent=2)
-
-        else: # Returns default dimensions of the dataset
-            return json.dumps(dict(self.data_set.sizes), indent=2) # Prints the shape of the data
+        if dimension in ds.dims:
+            return ds.sizes[dimension][0]
+            
+        else:
+            return "Error: Dimension not found in dataset."
 
     # Given the time dimension, determines the number of zoom levels    
     def determine_zoom_levels(self):
@@ -67,43 +55,17 @@ class water_column_resample:
             time_dim = time_dim // 2
             zoom_levels += 1
 
-        return zoom_levels
-        
-    # Creates a local copy of the sv data (complete sv, depth, time and frequency)
-    def copy_sv_data(self):
-        if self.data_set is None:
-            self.open_store() # Opens the store if it hasn't been opened yet
-        
-        # This opens the store from the cloud servers
-        cloud_store = self.data_set
+        self.zoom_levels = zoom_levels
 
-        # This opens a local zarr store to write to
-        local_store = xr.Dataset()
-        local_store['Sv'] = xr.DataArray()
-
-        # Pulling the sv data from the cloud store
-        sv_data = cloud_store[['Sv']]
-
-        # Writing the sv data to the local store (copies the following data arrays: Sv, frequency, time, depth)
-        local_store = sv_data.to_zarr('local_sv_data.zarr', mode='w', compute=True, zarr_format=2)
-
-    # Makes an empty datatree based on the number of zoom levels
+    # Makes an empty datatree and writes it to the disk
     def make_tree(self):
-        levels = self.determine_zoom_levels()
-        level_0 = self.new_dataarray() # This calls the new_dataarray method to create level 0 (base data)
+        # Initializing an empty data tree
+        empty_tree = xr.DataTree()
 
-        tree = xr.DataTree(name='root')
-        tree['level_0'] = xr.DataTree(name='level_0', dataset=level_0)
-
-        # For loop to continuously add levels
-        for level in range(1, levels + 1):
-            name = f"level_{level}"
-            tree[name] = xr.DataTree(name=name)
-        
-        return tree
+        # The empty tree is written to the disk
+        empty_tree.to_zarr("empty_tree.zarr", mode='w')
 
     def resample_tree(self):
-        
         tree = self.make_tree()
         zoom_levels = self.determine_zoom_levels()
 
@@ -123,9 +85,6 @@ class water_column_resample:
 
     # Creates a new dataarray with just depth and time   
     def new_dataarray(self):
-        if self.data_set is None:
-            self.open_store() # Opens the store if it hasn't been opened yet
-        
         # This opens the store from the cloud servers
         cloud_store = self.data_set
         masked_store = cloud_store.Sv.where(cloud_store.depth < cloud_store.bottom)
@@ -173,9 +132,9 @@ class water_column_resample:
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.25)
+    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 1)
     print(x.get_dimension("time"))
-    print(x.determine_zoom_levels())
+    # print(x.determine_zoom_levels())
     # print(x.make_tree())
-    print(x.resample_tree())
+    # print(x.resample_tree())
     # print(x.new_dataarray())
