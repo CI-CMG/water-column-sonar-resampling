@@ -32,6 +32,7 @@ class water_column_resample:
                 chunks='auto'
                 )
             
+        # The aformentioned fraction slicing for testing purposes    
         if self.fraction < 1.0:
             max_index = int(len(self.data_set.time) * self.fraction)
             self.data_set = self.data_set.isel(time=slice(0, max_index))
@@ -89,8 +90,10 @@ class water_column_resample:
             # Assigns the resampled data to the appropriate level in the tree
             tree[f'level_{level}'] = xr.DataTree(dataset=resampled_data, name=f'level_{level}')
 
+            # Updates last_ds for the next iteration
             last_ds = resampled_data
 
+        # Writes the completed tree to disk
         tree.to_zarr('empty_tree.zarr', mode='w')
 
         return tree
@@ -151,6 +154,7 @@ if __name__ == "__main__":
     tree = x.resample_tree()
     # print(x.new_dataarray())
 
+    # Printing out some information about each level to help "visualize" the resampling
     for level in range(x.zoom_levels + 1):
         level_name = f'level_{level}'
         ds = tree[level_name].dataset
