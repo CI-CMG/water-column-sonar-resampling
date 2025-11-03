@@ -74,26 +74,24 @@ class water_column_resample:
 
         # Establishing level 0 before the loop
         level_0 = self.new_dataarray()
-        tree['level_0'] = xr.DataTree(name='level_0')
-        tree['level_0'].ds = level_0
+        tree['level_0'] = xr.DataTree(dataset= level_0, name='level_0')
+        tree['level_0'].to_zarr('empty_tree.zarr', mode='w', zarr_version=3)
 
-        tree['level_0'].to_zarr('empty_tree.zarr', mode='a', zarr_version=3)
+        last_ds = level_0
 
         for level in range(1, self.zoom_levels + 1):
 
-            # Getting the last level of the tree
-            last_level = f'level_{level - 1}'
-            last_ds = tree[last_level].dataset
-            name = f'level_{level}'
+            # name = f'level_{level}'
 
             # Uses the coarsen method to downsample by a factor of 2 along the time dimension
             resampled_data = last_ds.coarsen(time=2, boundary='trim').mean()
 
             # Assigns the resampled data to the appropriate level in the tree
-            tree[name] = xr.DataTree(dataset=resampled_data, name=name)
-            tree[name].ds = resampled_data
+            tree[f'level_{level}'] = xr.DataTree(dataset=resampled_data, name=f'level_{level}')
 
-            tree[name].to_zarr('empty_tree.zarr', mode='a')
+            last_ds = resampled_data
+
+        tree.to_zarr('empty_tree.zarr', mode='w')
 
         return tree
 
@@ -146,7 +144,7 @@ class water_column_resample:
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.025)
+    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.1)
     print(x.get_dimension("time"))
     # print(x.determine_zoom_levels())
     # print(x.make_tree())
