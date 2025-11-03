@@ -13,6 +13,7 @@ class water_column_resample:
         self.store = None
         self.data_set = None
         self.attributes = None
+        self.zoom_levels = None
         self.fraction = fraction # This is strictly for testing purposes as it will slice the time dimension to x% of the original
 
     # Actually opens the zarr store based on the link given
@@ -41,14 +42,14 @@ class water_column_resample:
         ds = self.data_set
 
         if dimension in ds.dims:
-            return ds.sizes[dimension][0]
+            return ds.sizes[dimension]
             
         else:
             return "Error: Dimension not found in dataset."
 
     # Given the time dimension, determines the number of zoom levels    
     def determine_zoom_levels(self):
-        time_dim = self.get_dimension('time')['time']
+        time_dim = self.get_dimension('time')
         zoom_levels = 0
 
         while time_dim >= 4096: # Can define some kind of acceptable range later
@@ -65,21 +66,34 @@ class water_column_resample:
         # The empty tree is written to the disk
         empty_tree.to_zarr("empty_tree.zarr", mode='w')
 
-    def resample_tree(self):
-        tree = self.make_tree()
-        zoom_levels = self.determine_zoom_levels()
+        return empty_tree
 
-        for level in range(1, zoom_levels + 1):
+    def resample_tree(self):
+        self.determine_zoom_levels()
+        tree = self.make_tree()
+
+        # Establishing level 0 before the loop
+        level_0 = self.new_dataarray()
+        tree['level_0'] = xr.DataTree(name='level_0')
+        tree['level_0'].ds = level_0
+
+        tree['level_0'].to_zarr('empty_tree.zarr', mode='a', zarr_version=3)
+
+        for level in range(1, self.zoom_levels + 1):
 
             # Getting the last level of the tree
             last_level = f'level_{level - 1}'
             last_ds = tree[last_level].dataset
+            name = f'level_{level}'
 
             # Uses the coarsen method to downsample by a factor of 2 along the time dimension
             resampled_data = last_ds.coarsen(time=2, boundary='trim').mean()
 
             # Assigns the resampled data to the appropriate level in the tree
-            tree[f'level_{level}'].dataset = resampled_data
+            tree[name] = xr.DataTree(dataset=resampled_data, name=name)
+            tree[name].ds = resampled_data
+
+            tree[name].to_zarr('empty_tree.zarr', mode='a')
 
         return tree
 
@@ -132,9 +146,9 @@ class water_column_resample:
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 1)
+    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.025)
     print(x.get_dimension("time"))
     # print(x.determine_zoom_levels())
     # print(x.make_tree())
-    # print(x.resample_tree())
+    print(x.resample_tree())
     # print(x.new_dataarray())
