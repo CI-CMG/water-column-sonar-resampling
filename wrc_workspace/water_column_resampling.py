@@ -70,13 +70,15 @@ class water_column_resample:
         return empty_tree
 
     def resample_tree(self):
-        self.determine_zoom_levels()
+        if self.zoom_levels == 0:
+            self.determine_zoom_levels()
+
         tree = self.make_tree()
 
         # Establishing level 0 before the loop
         level_0 = self.new_dataarray()
         tree['level_0'] = xr.DataTree(dataset= level_0, name='level_0')
-        tree['level_0'].to_zarr('empty_tree.zarr', mode='w', zarr_version=3)
+        tree['level_0'].to_zarr('empty_tree.zarr', mode='w', zarr_format=2)
 
         last_ds = level_0
 
@@ -101,6 +103,7 @@ class water_column_resample:
     # Creates a new dataarray with just depth and time   
     def new_dataarray(self):
         # This opens the store from the cloud servers
+        self.open_store()
         cloud_store = self.data_set
         masked_store = cloud_store.Sv.where(cloud_store.depth < cloud_store.bottom)
 
@@ -147,7 +150,7 @@ class water_column_resample:
 
 # A test to see if it works-- use as needed
 if __name__ == "__main__":
-    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.5)
+    x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.1)
     # print(x.get_dimension("time"))
     # print(x.determine_zoom_levels())
     # print(x.make_tree())

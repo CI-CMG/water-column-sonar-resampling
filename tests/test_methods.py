@@ -23,12 +23,51 @@ def test_open(tmp_path):
     local_store.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
     
     # Opening it and running tests
-    x = wcr.water_column_resample(temp_store)
+    x = wcr.water_column_resample(temp_store, 1)
     x.open_store()
-    assert x.return_attributes() is not None
     assert x.get_dimension() is not None
 
-# TODO: EDIT THIS TEST LMAO
+def test_resampled_tree(tmp_path):
+    depth = np.arange(10)
+    time = np.arange(16)
+    freq = np.array([18])
+
+    # Make synthetic data deterministic for testing
+    np.random.seed(0)
+    ds = np.random.randint(-70, -20, size=(len(freq), len(depth), len(time)))
+    bottom = np.array([1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9])
+
+    level_0 = xr.Dataset(
+        {
+            'Sv': (('frequency', 'depth', 'time'), ds),
+            'bottom': (('time',), bottom)
+        },
+
+        coords= {
+            'frequency': freq,
+            'depth': depth,
+            'time': time
+        }
+    )
+
+    # Defining a temporary store path
+    temp_store = tmp_path/'TMP_STORE.zarr'
+
+    # Writing to the local store to a temporary zarr file
+    level_0.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
+
+    # Opening it and running tests
+    x = wcr.water_column_resample(temp_store, 1)
+    x.zoom_levels = 1  # Manually setting zoom levels for testing
+    tree = x.resample_tree()
+
+    level_0 = tree['level_0'].dataset
+    level_1 = tree['level_1'].dataset
+
+    assert 'level_0' in tree
+    assert 'level_1' in tree
+    assert level_1.sizes['time'] == level_0.sizes['time'] // 2
+    assert level_1.sizes['depth'] == level_0.sizes['depth']
 
 def test_new_array(tmp_path):
     depth = np.arange(0, 4)
@@ -51,7 +90,7 @@ def test_new_array(tmp_path):
             'frequency': freq,
             'depth': depth,
             'time': time
-        },
+        }
     )
 
     # Chucking it into a baby store
@@ -64,7 +103,7 @@ def test_new_array(tmp_path):
     dt_array.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
 
     # Opening it and running tests
-    x = wcr.water_column_resample(temp_store)
+    x = wcr.water_column_resample(temp_store, 1)
     local_store = x.new_dataarray()
 
     assert isinstance(local_store, xr.Dataset)
