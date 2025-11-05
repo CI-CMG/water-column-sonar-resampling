@@ -8,6 +8,11 @@ import zarr
 # Can change method name later on
 class water_column_resample:
     def __init__(self, store_link, fraction):
+        """
+        Arguments:
+            store_link (str): The link to the zarr store (can be local or s3)
+            fraction (float): The fraction of the time dimension to use for testing (between 0 and 1)
+        """
         self.store_link = store_link
         self.file_system = s3fs.S3FileSystem(anon=True)
         self.store = None
@@ -39,6 +44,10 @@ class water_column_resample:
     
     # Returns the default dimensions of the data set, or the dimensions of a specified variable
     def get_dimension(self, dimension=None):
+        """
+        Args:
+            dimension (str): The dimension to get the size of (width, time, frequency). If None, returns all dimensions.
+        """
         self.open_store()
         ds = self.data_set
 
