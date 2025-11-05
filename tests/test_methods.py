@@ -4,19 +4,17 @@ import xarray as xr
 import zarr
 
 def test_open(tmp_path):
-    # Opening a temporary zarr array to test with
+    # A small store to ensure the testing suite doesn't take too long
     dt_array = xr.DataArray(
         data=np.empty((1024, 1024), dtype='int8'),
         dims=('depth', 'time')
     )
 
-    # Chucking it into a baby store
     dt_array = dt_array.chunk({'time': 1024, 'depth': 1024})
 
     # Adding it to a local store
     local_store = xr.Dataset(data_vars={'Sv': dt_array})
 
-    # Defining a temporary store path
     temp_store = f'{tmp_path}/TMP_STORE.zarr'
 
     # Writing the local store to a temporary zarr file
@@ -50,10 +48,8 @@ def test_resampled_tree(tmp_path):
         }
     )
 
-    # Defining a temporary store path
     temp_store = tmp_path/'TMP_STORE.zarr'
 
-    # Writing to the local store to a temporary zarr file
     level_0.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
 
     # Opening it and running tests
@@ -66,8 +62,8 @@ def test_resampled_tree(tmp_path):
 
     assert 'level_0' in tree
     assert 'level_1' in tree
-    assert level_1.sizes['time'] == level_0.sizes['time'] // 2
-    assert level_1.sizes['depth'] == level_0.sizes['depth']
+    assert level_1.sizes['time'] == level_0.sizes['time'] // 2 # Checks to make sure the time dimension halved
+    assert level_1.sizes['depth'] == level_0.sizes['depth'] # But also checks to make sure depth dimension is untouched
 
 def test_new_array(tmp_path):
     depth = np.arange(0, 4)
@@ -79,7 +75,6 @@ def test_new_array(tmp_path):
     sv_data = np.random.randint(-70, -20, size=(len(freq), len(depth), len(time))).astype(np.float32)
     bottom = np.array([1, 2, 2, 3, 3, 4])
     
-    # Opening a temporary zarr array to test with
     dt_array = xr.Dataset(
         {
             'Sv': (('frequency', 'depth', 'time'), sv_data),
@@ -93,20 +88,17 @@ def test_new_array(tmp_path):
         }
     )
 
-    # Chucking it into a baby store
     dt_array = dt_array.chunk({'frequency': 1, 'time': 2, 'depth': 2})
 
-    # Defining a temporary store path
     temp_store = tmp_path/'TMP_STORE.zarr'
 
-    # Writing to the local store to a temporary zarr file
     dt_array.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
 
     # Opening it and running tests
     x = wcr.water_column_resample(temp_store, 1)
     local_store = x.new_dataarray()
 
-    assert isinstance(local_store, xr.Dataset)
+    assert isinstance(local_store, xr.Dataset) # Ensures the store is an xarray Dataset
     assert 'Sv' in local_store
     assert local_store['Sv'].dtype == np.int8
 
