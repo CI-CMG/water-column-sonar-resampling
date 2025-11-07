@@ -79,7 +79,7 @@ class water_column_resample:
         return empty_tree
 
     def resample_tree(self):
-        if self.zoom_levels == 0:
+        if self.zoom_levels is None:
             self.determine_zoom_levels()
 
         tree = self.make_tree()

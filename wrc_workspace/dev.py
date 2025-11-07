@@ -1,6 +1,6 @@
 import xarray as xr
 from water_column_resampling import water_column_resample
-
+"""
 # Open the DataTree
 tree = xr.open_datatree('empty_tree.zarr', engine='zarr')
 
@@ -12,8 +12,9 @@ level_1 = tree['level_1'].dataset
 print(level_0)
 print('\n')
 print(level_1)
+"""
 
-x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.1)
+x = water_column_resample("s3://noaa-wcsd-zarr-pds/level_2/Henry_B._Bigelow/HB0707/EK60/HB0707.zarr", 0.075)
 # print(x.get_dimension("time"))
 # print(x.determine_zoom_levels())
 # print(x.make_tree())
