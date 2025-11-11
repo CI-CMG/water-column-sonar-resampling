@@ -147,9 +147,10 @@ def test_dtype(tmp_path):
 
     # Opening it and running tests
     x = wcr.water_column_resample(temp_store, 1)
+    x.zoom_levels = 3
     tree = x.resample_tree()
 
-    for level in range(max(1, x.zoom_levels)):
+    for level in range(1, x.zoom_levels + 1):
         level_name = f'level_{level}'
         ds = tree[level_name].dataset
 
