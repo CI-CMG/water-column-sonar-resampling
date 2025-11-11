@@ -91,6 +91,7 @@ class water_column_resample:
 
         last_ds = level_0
 
+        # TODO: Process this in chunks similar to the approach new_dataarray() takes-- it will lower the memory footprint
         for level in range(1, self.zoom_levels + 1):
 
             # Uses the coarsen method to downsample by a factor of 2 along the time dimension

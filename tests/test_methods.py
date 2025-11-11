@@ -115,3 +115,42 @@ def test_new_array(tmp_path):
     # Ensure shapes match and values are equal after masking and casting
     assert stored.shape == expected.shape
     assert np.array_equal(stored, expected)
+
+def test_dtype(tmp_path):
+    depth = np.arange(0, 4)
+    time = np.arange(0, 6)
+    freq = np.array([18])
+
+    # Make synthetic data deterministic for testing
+    np.random.seed(0)
+    sv_data = np.random.randint(-70, -20, size=(len(freq), len(depth), len(time))).astype(np.float32)
+    bottom = np.array([1, 2, 2, 3, 3, 4])
+    
+    dt_array = xr.Dataset(
+        {
+            'Sv': (('frequency', 'depth', 'time'), sv_data),
+            'bottom': (('time',), bottom)
+        },
+
+        coords= {
+            'frequency': freq,
+            'depth': depth,
+            'time': time
+        }
+    )
+
+    dt_array = dt_array.chunk({'frequency': 1, 'time': 2, 'depth': 2})
+
+    temp_store = tmp_path/'TMP_STORE.zarr'
+
+    dt_array.to_zarr(temp_store, mode='w', compute=True, zarr_format=2)
+
+    # Opening it and running tests
+    x = wcr.water_column_resample(temp_store, 1)
+    tree = x.resample_tree()
+
+    for level in range(max(1, x.zoom_levels)):
+        level_name = f'level_{level}'
+        ds = tree[level_name].dataset
+
+        assert ds['Sv'].dtype == np.int8
