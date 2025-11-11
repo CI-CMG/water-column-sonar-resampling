@@ -93,10 +93,11 @@ class water_column_resample:
 
         for level in range(1, self.zoom_levels + 1):
 
-            # name = f'level_{level}'
-
             # Uses the coarsen method to downsample by a factor of 2 along the time dimension
             resampled_data = last_ds.coarsen(time=2, boundary='trim').mean()
+
+            # Recast into int8
+            resampled_data = resampled_data.astype('int8')
 
             # Assigns the resampled data to the appropriate level in the tree
             tree[f'level_{level}'] = xr.DataTree(dataset=resampled_data, name=f'level_{level}')
