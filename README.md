@@ -1,6 +1,9 @@
 # water-column-sonar-resampling
 Water Column Sonar Data Reprocessing Project for Warren Tech Capstone 2026
 
+## Installing
+To install the package within the repository use `pip install water-column-sonar-processing`
+
 ## Reminders
 Please update the patch number in `pyproject.toml` !!!
 
